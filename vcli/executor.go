@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -12,13 +11,23 @@ func executor(command string) {
 	if len(command) > 0 && len(cmds) > 0 {
 		pCmd := cmds[0]
 		options := cmds[1:]
+
 		if fn, ok := Commands[pCmd]; ok {
-			err := fn.Execute(vcli, options...)
+			// Start spinner before executing the command
+			Spinner.Start()
+			t, err := fn.Execute(vcli, options...)
+			// Stop spinner once command execution is finished
+			Spinner.Stop()
+
 			if err != nil {
-				fmt.Println(err)
+				Error(err.Error())
+			}
+			// Print command response
+			if t != nil {
+				t.Print()
 			}
 		} else {
-			fmt.Printf("Unknown command: '%s'\n", pCmd)
+			Error("Unknown command: '%s'\n", pCmd)
 		}
 	}
 }

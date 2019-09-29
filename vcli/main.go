@@ -15,8 +15,6 @@ import (
 	"syscall"
 
 	"github.com/vmware/govmomi"
-	_ "github.com/vmware/govmomi/vim25"
-	_ "github.com/vmware/govmomi/vim25/mo"
 )
 
 type Vcli struct {
@@ -25,12 +23,24 @@ type Vcli struct {
 	channel chan string
 }
 
+const (
+	VCLI_VERSION      = "1.0.0"
+	SessionCookieName = "vmware_soap_session"
+)
+
 var (
 	once     sync.Once
 	instance *Vcli
 )
 
 var protocolMatch = regexp.MustCompile(`^\w+://`)
+
+// show vCLI usage
+func printUsage() {
+	prog := filepath.Base(os.Args[0])
+	fmt.Println("Usage: \t", prog, "-h <ESXi or vCenter host> -u <Username> -p <Password>")
+	os.Exit(1)
+}
 
 func New(url string, username string, passwd string, insecure bool) (*Vcli, error) {
 	if instance == nil {
@@ -45,7 +55,13 @@ func New(url string, username string, passwd string, insecure bool) (*Vcli, erro
 		}
 
 		messages := make(chan string)
-		// fmt.Printf("Client: %v\n", c)
+
+		for _, cookie := range c.Client.Client.Client.Jar.Cookies(u) {
+			if cookie.Name == SessionCookieName {
+				fmt.Println("soap session cookie: ", cookie.Value)
+			}
+		}
+
 		once.Do(func() {
 			instance = &Vcli{
 				ctx:     ctx,
@@ -94,11 +110,15 @@ func getArgs() (string, string, string, bool) {
 	url := vcliArgs.String("h", "", "ESXi or vCenter host")
 	username := vcliArgs.String("u", "", "Username")
 	password := vcliArgs.String("p", "", "Password")
-	insecure := vcliArgs.Bool("k", true, "Insecure")
+	// insecure := vcliArgs.Bool("k", true, "Insecure")
+	// Don't verify the server's certificate chain (default)
+	insecure := true
 
 	if len(os.Args) <= 1 {
 		printUsage()
 	}
+
+	vcliArgs.Parse(os.Args[1:])
 
 	if strings.Trim(*password, " ") == "" {
 		fmt.Print("Enter password: ")
@@ -109,8 +129,7 @@ func getArgs() (string, string, string, bool) {
 		fmt.Println()
 	}
 
-	vcliArgs.Parse(os.Args[1:])
-	return *url, *username, *password, *insecure
+	return *url, *username, *password, insecure
 }
 
 func main() {
@@ -128,7 +147,8 @@ func main() {
 
 	defer cli.client.Logout(cli.ctx)
 
-	fmt.Println("vCLI - An interactive vSphere CLI client")
+	a := cli.client.Client.ServiceContent.About
+	Success("Connected to", a.Name, a.Version)
 
 	// Show messages we recieve from other go routines
 	go func() {

@@ -1,25 +1,32 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"text/tabwriter"
+	"github.com/tatsushid/go-prettytable"
+	_ "text/tabwriter"
 )
 
 type AboutCommand struct{}
 
-func (c *AboutCommand) Execute(v *Vcli, args ...string) error {
+func (c *AboutCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
 	a := v.client.Client.ServiceContent.About
-	tw := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
-	fmt.Fprintf(tw, "Name:\t%s\n", a.Name)
-	fmt.Fprintf(tw, "Vendor:\t%s\n", a.Vendor)
-	fmt.Fprintf(tw, "Version:\t%s\n", a.Version)
-	fmt.Fprintf(tw, "Build:\t%s\n", a.Build)
-	fmt.Fprintf(tw, "OS type:\t%s\n", a.OsType)
-	fmt.Fprintf(tw, "API type:\t%s\n", a.ApiType)
-	fmt.Fprintf(tw, "API version:\t%s\n", a.ApiVersion)
-	fmt.Fprintf(tw, "Product ID:\t%s\n", a.ProductLineId)
-	fmt.Fprintf(tw, "UUID:\t%s\n", a.InstanceUuid)
-	tw.Flush()
-	return nil
+	tbl, err := prettytable.NewTable([]prettytable.Column{
+		{Header: "Key"},
+		{Header: "Value"},
+	}...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	tbl.NoHeader = true
+	tbl.AddRow("Name:", a.Name)
+	tbl.AddRow("Vendor:", a.Vendor)
+	tbl.AddRow("Version:", a.Version)
+	tbl.AddRow("Build:", a.Build)
+	tbl.AddRow("OS type:", a.OsType)
+	tbl.AddRow("API type:", a.ApiType)
+	tbl.AddRow("API version:", a.ApiVersion)
+	tbl.AddRow("Product ID:", a.ProductLineId)
+	tbl.AddRow("UUID:", a.InstanceUuid)
+	return tbl, nil
 }

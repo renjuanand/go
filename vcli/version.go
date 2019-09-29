@@ -1,22 +1,23 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"os"
-	"text/tabwriter"
+	"github.com/tatsushid/go-prettytable"
 )
 
 type VersionCommand struct{}
 
-func (c *VersionCommand) Execute(v *Vcli, args ...string) error {
-	if v == nil {
-		return errors.New("Failed to execute version command")
+func (c *VersionCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
+	a := v.client.Client.ServiceContent.About
+	tbl, err := prettytable.NewTable([]prettytable.Column{
+		{Header: "Key"},
+		{Header: "Value"},
+	}...)
+
+	if err != nil {
+		return nil, err
 	}
 
-	a := v.client.Client.ServiceContent.About
-	tw := tabwriter.NewWriter(os.Stdout, 2, 0, 2, ' ', 0)
-	fmt.Fprintf(tw, "Version:\t%s\n", a.Version)
-	tw.Flush()
-	return nil
+	tbl.NoHeader = true
+	tbl.AddRow("Version:", a.Version)
+	return tbl, nil
 }

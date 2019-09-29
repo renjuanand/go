@@ -49,22 +49,23 @@ var vmActions = map[string]vmAction{
 	VM_DESTROY:  vmAction{"Destroy", "Destroying"},
 }
 
-func (c *VmCommand) Execute(v *Vcli, args ...string) error {
+func (c *VmCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(args) > 0 {
 		cmd := args[0]
 		options := args[1:]
 		if fn, ok := vmCommands[cmd]; ok {
-			err := fn.Execute(v, options...)
+			t, err := fn.Execute(v, options...)
 			if err != nil {
-				return err
+				return nil, err
 			}
+			return t, nil
 		} else {
 			fmt.Printf("Unknown subcommand '%s' for vm\n", cmd)
 		}
-		return nil
+		return nil, nil
 	}
-	fmt.Println(c.Usage())
-	return nil
+	Message(c.Usage())
+	return nil, nil
 }
 
 func (c *VmCommand) Usage() string {
@@ -78,13 +79,13 @@ Commands:
 	destroy`
 }
 
-func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) error {
+func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	ctx := cli.ctx
 	c := cli.client.Client
 	m := view.NewManager(c)
 	v, err := m.CreateContainerView(ctx, c.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var option, filter string
@@ -104,14 +105,14 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) error {
 	props = append(props, "guest.ipAddress")
 	err = v.Retrieve(ctx, []string{"VirtualMachine"}, props, &vms)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
-		{Header: "SN"},
-		{Header: "NAME", MinWidth: 6},
-		{Header: "IP ADDRESS"},
-		{Header: "STATE"},
+		{Header: "No"},
+		{Header: "Name"},
+		{Header: "IP Address"},
+		{Header: "State"},
 	}...)
 
 	// tbl.Separator = " | "
@@ -130,13 +131,12 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) error {
 		}
 	}
 
-	tbl.Print()
-	return nil
+	return tbl, nil
 }
 
-func (c *VmInfoCommand) Execute(cli *Vcli, args ...string) error {
+func (c *VmInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	fmt.Println("Not implemented")
-	return nil
+	return nil, nil
 }
 
 func (c *VmPowerOnCommand) Usage() string {
@@ -144,11 +144,12 @@ func (c *VmPowerOnCommand) Usage() string {
        vm poweron 1,2,...`
 }
 
-func (c *VmPowerOnCommand) Execute(cli *Vcli, args ...string) error {
+func (c *VmPowerOnCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return errors.New(c.Usage())
+		return nil, errors.New(c.Usage())
 	}
-	return executeVmCommand("poweron", cli, args...)
+	err := executeVmCommand("poweron", cli, args...)
+	return nil, err
 }
 
 func (c *VmPowerOffCommand) Usage() string {
@@ -156,11 +157,12 @@ func (c *VmPowerOffCommand) Usage() string {
        vm poweroff 1,2,...`
 }
 
-func (c *VmPowerOffCommand) Execute(cli *Vcli, args ...string) error {
+func (c *VmPowerOffCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return errors.New(c.Usage())
+		return nil, errors.New(c.Usage())
 	}
-	return executeVmCommand("poweroff", cli, args...)
+	err := executeVmCommand("poweroff", cli, args...)
+	return nil, err
 }
 
 func (c *VmDestroyCommand) Usage() string {
@@ -168,11 +170,12 @@ func (c *VmDestroyCommand) Usage() string {
        vm destroy 1,2,...`
 }
 
-func (c *VmDestroyCommand) Execute(cli *Vcli, args ...string) error {
+func (c *VmDestroyCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return errors.New(c.Usage())
+		return nil, errors.New(c.Usage())
 	}
-	return executeVmCommand("destroy", cli, args...)
+	err := executeVmCommand("destroy", cli, args...)
+	return nil, err
 }
 
 func executeVmCommand(action string, cli *Vcli, args ...string) error {
