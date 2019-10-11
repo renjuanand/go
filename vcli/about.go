@@ -7,6 +7,7 @@ import (
 
 type AboutCommand struct{}
 
+// 'about' command handler
 func (c *AboutCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
 	a := v.client.Client.ServiceContent.About
 	tbl, err := prettytable.NewTable([]prettytable.Column{
@@ -18,15 +19,21 @@ func (c *AboutCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, err
 		return nil, err
 	}
 
+	aboutTbl := []KeyValue{
+		{"Name", a.Name},
+		{"Vendor", a.Vendor},
+		{"Version:", a.Version},
+		{"Build:", a.Build},
+		{"OS type:", a.OsType},
+		{"API type:", a.ApiType},
+		{"API version:", a.ApiVersion},
+		{"Product ID:", a.ProductLineId},
+		{"UUID:", a.InstanceUuid},
+	}
+
 	tbl.NoHeader = true
-	tbl.AddRow("Name:", a.Name)
-	tbl.AddRow("Vendor:", a.Vendor)
-	tbl.AddRow("Version:", a.Version)
-	tbl.AddRow("Build:", a.Build)
-	tbl.AddRow("OS type:", a.OsType)
-	tbl.AddRow("API type:", a.ApiType)
-	tbl.AddRow("API version:", a.ApiVersion)
-	tbl.AddRow("Product ID:", a.ProductLineId)
-	tbl.AddRow("UUID:", a.InstanceUuid)
+	for _, k := range aboutTbl {
+		tbl.AddRow(Key(k.key), k.value)
+	}
 	return tbl, nil
 }

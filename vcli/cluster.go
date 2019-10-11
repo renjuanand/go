@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "errors"
+	"errors"
 	"github.com/tatsushid/go-prettytable"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -12,21 +12,21 @@ import (
 	_ "strings"
 )
 
-type ClCommand struct{}
-type ClListCommand struct{}
-type ClInfoCommand struct{}
+type CrCommand struct{}
+type CrListCommand struct{}
+type CrInfoCommand struct{}
 
 const (
-	CL_LIST = "list"
-	CL_INFO = "info"
+	CR_LIST = "list"
+	CR_INFO = "info"
 )
 
 var clCommands = map[string]Command{
-	CL_LIST: &ClListCommand{},
-	CL_INFO: &ClInfoCommand{},
+	CR_LIST: &CrListCommand{},
+	CR_INFO: &CrInfoCommand{},
 }
 
-func (c *ClCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
+func (c *CrCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(args) > 0 {
 		cmd := args[0]
 		options := args[1:]
@@ -42,7 +42,7 @@ func (c *ClCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 	return nil, nil
 }
 
-func (c *ClCommand) Usage() string {
+func (c *CrCommand) Usage() string {
 	return `Usage: cl {command}
 
 Commands:
@@ -50,10 +50,14 @@ Commands:
 	info`
 }
 
-func (cmd *ClListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
+func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	clusters, err := GetClusterComputeResources(cli)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(clusters) <= 0 {
+		return nil, errors.New("No cluster found")
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
@@ -69,7 +73,7 @@ func (cmd *ClListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	for index, cl := range clusters {
 		// hostObjects, _ := cl.ComputeResource.Hosts(ctx)
 		// hostSystems, _ := getHostSystems(cli, hostObjects)
-		cr, _ := getComputeResource(cli, &cl.ComputeResource)
+		cr, _ := GetComputeResource(cli, &cl.ComputeResource)
 		summary := cr.Summary.GetComputeResourceSummary()
 		tbl.AddRow(index+1, cl.Name(), cl.InventoryPath, summary.NumHosts, summary.TotalCpu, summary.TotalMemory, summary.NumCpuCores)
 	}
@@ -77,7 +81,7 @@ func (cmd *ClListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	return tbl, nil
 }
 
-func (c *ClInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
+func (c *CrInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	Error("Not implemented")
 	return nil, nil
 }
@@ -139,7 +143,7 @@ func GetClusterComputeResources(cli *Vcli) ([]*object.ClusterComputeResource, er
 	return clusters, nil
 }
 
-func getComputeResource(cli *Vcli, cr *object.ComputeResource) (*mo.ComputeResource, error) {
+func GetComputeResource(cli *Vcli, cr *object.ComputeResource) (*mo.ComputeResource, error) {
 	ctx := cli.ctx
 	c := cli.client.Client
 	props := []string{

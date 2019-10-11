@@ -20,7 +20,7 @@ func executor(command string) {
 			Spinner.Stop()
 
 			if err != nil {
-				Error(err.Error())
+				Errorln(err.Error())
 			}
 			// Print command response
 			if t != nil {

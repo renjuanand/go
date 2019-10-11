@@ -10,22 +10,32 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/vmware/govmomi"
 )
 
-type Vcli struct {
-	ctx     context.Context
-	client  *govmomi.Client
-	channel chan string
+type Credentials struct {
+	username string
+	password string
 }
 
+type Vcli struct {
+	ctx    context.Context
+	client *govmomi.Client
+	auth   *Credentials
+}
+
+type Exit int
+
 const (
-	VCLI_VERSION      = "1.0.0"
-	SessionCookieName = "vmware_soap_session"
+	VCLI_VERSION        = "1.0.0"
+	IDLE_ACTION_TIMEOUT = 5 * time.Second
+	SessionCookieName   = "vmware_soap_session"
 )
 
 var (
@@ -33,6 +43,7 @@ var (
 	instance *Vcli
 )
 
+var IdleActionTimer *time.Timer
 var protocolMatch = regexp.MustCompile(`^\w+://`)
 
 // show vCLI usage
@@ -54,19 +65,17 @@ func New(url string, username string, passwd string, insecure bool) (*Vcli, erro
 			return nil, err
 		}
 
-		messages := make(chan string)
-
-		for _, cookie := range c.Client.Client.Client.Jar.Cookies(u) {
-			if cookie.Name == SessionCookieName {
-				fmt.Println("soap session cookie: ", cookie.Value)
+		/*
+			for _, cookie := range c.Client.Client.Client.Jar.Cookies(u) {
+				if cookie.Name == SessionCookieName {
+					fmt.Println("soap session cookie: ", cookie.Value)
+				}
 			}
-		}
-
+		*/
 		once.Do(func() {
 			instance = &Vcli{
-				ctx:     ctx,
-				client:  c,
-				channel: messages,
+				ctx:    ctx,
+				client: c,
 			}
 		})
 	}
@@ -132,6 +141,20 @@ func getArgs() (string, string, string, bool) {
 	return *url, *username, *password, insecure
 }
 
+func handleExit(cli *Vcli) {
+	switch v := recover().(type) {
+	case nil:
+		cli.client.Logout(cli.ctx)
+		Message("Good Bye!")
+		return
+	case Exit:
+		cli.client.Logout(cli.ctx)
+		os.Exit(int(v))
+	default:
+		fmt.Println(string(debug.Stack()))
+	}
+}
+
 func main() {
 	h, u, p, s := getArgs()
 
@@ -144,18 +167,23 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	auth := &Credentials{username: u, password: p}
+	cli.auth = auth
 
+	/*
+		IdleActionTimer = time.NewTimer(IDLE_ACTION_TIMEOUT)
+
+		go func() {
+			<-IdleActionTimer.C
+			cli.client.Logout(cli.ctx)
+			Message("Session disconnected!")
+			panic(Exit(0))
+		}()
+	*/
+	defer handleExit(cli)
 	defer cli.client.Logout(cli.ctx)
 
 	a := cli.client.Client.ServiceContent.About
 	Success("Connected to", a.Name, a.Version)
-
-	// Show messages we recieve from other go routines
-	go func() {
-		for m := range cli.channel {
-			fmt.Println(m)
-		}
-	}()
-
 	showPrompt()
 }

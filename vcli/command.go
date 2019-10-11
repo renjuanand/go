@@ -11,7 +11,7 @@ type Command interface {
 // commands available for vCLI prompt
 var Commands = map[string]Command{
 	"about":   &AboutCommand{},
-	"cl":      &ClCommand{},
+	"cr":      &CrCommand{},
 	"dc":      &DcCommand{},
 	"exit":    &ExitCommand{},
 	"help":    &HelpCommand{},

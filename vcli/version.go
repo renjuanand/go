@@ -18,6 +18,6 @@ func (c *VersionCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, e
 	}
 
 	tbl.NoHeader = true
-	tbl.AddRow("Version:", a.Version)
+	tbl.AddRow(Key("Version:"), a.Version)
 	return tbl, nil
 }

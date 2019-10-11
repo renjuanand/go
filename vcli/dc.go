@@ -14,16 +14,13 @@ import (
 
 type DcCommand struct{}
 type DcListCommand struct{}
-type DcInfoCommand struct{}
 
 const (
 	DC_LIST = "list"
-	DC_INFO = "info"
 )
 
 var dcCommands = map[string]Command{
 	DC_LIST: &DcListCommand{},
-	DC_INFO: &DcInfoCommand{},
 }
 
 func (c *DcCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
@@ -32,9 +29,6 @@ func (c *DcCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 		options := args[1:]
 		if fn, ok := dcCommands[cmd]; ok {
 			t, err := fn.Execute(v, options...)
-			if err != nil {
-				return nil, err
-			}
 			return t, err
 		} else {
 			Error("Unknown subcommand '%s' for vm\n", cmd)
@@ -49,8 +43,7 @@ func (c *DcCommand) Usage() string {
 	return `Usage: dc {command}
 
 Commands:
-	list
-	info`
+	list`
 }
 
 func (cmd *DcListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
@@ -118,9 +111,4 @@ func (cmd *DcListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	}
 
 	return tbl, nil
-}
-
-func (c *DcInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
-	Error("Not implemented")
-	return nil, nil
 }

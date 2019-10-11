@@ -7,14 +7,15 @@ import (
 )
 
 var commands = []prompt.Suggest{
-	{Text: "about", Description: "Display About info for HOST."},
-	{Text: "cl", Description: "Cluster commands."},
-	{Text: "dc", Description: "Datacenter commands."},
-	{Text: "exit", Description: "Exit this program"},
-	{Text: "help", Description: "Show vCLI commands usage"},
-	{Text: "version", Description: "Show ESXi or vCenter version."},
-	{Text: "vm", Description: "VM commands."},
-	{Text: "quit", Description: "Exit this program"},
+	{Text: "about", Description: "Display About info for HOST"},
+	{Text: "cr", Description: "Cluster commands"},
+	{Text: "dc", Description: "Datacenter commands"},
+	{Text: "exit", Description: "Exit vCLI"},
+	{Text: "help", Description: "Show list of vCLI commands"},
+	{Text: "hx", Description: "HX commands"},
+	{Text: "version", Description: "Show ESXi or vCenter version"},
+	{Text: "vm", Description: "VM commands"},
+	{Text: "quit", Description: "Exit vCLI"},
 }
 
 func commandsCompleter(args []string) []prompt.Suggest {
@@ -29,11 +30,12 @@ func commandsCompleter(args []string) []prompt.Suggest {
 		second := args[1]
 		if len(args) == 2 {
 			subcommands := []prompt.Suggest{
-				{Text: "list", Description: "List all VMs"},
+				{Text: "destroy", Description: "Destroy VM"},
 				{Text: "info", Description: "Show VM info"},
+				{Text: "list", Description: "List all VMs"},
 				{Text: "poweroff", Description: "Poweroff VM"},
 				{Text: "poweron", Description: "Poweron VM"},
-				{Text: "destroy", Description: "Destroy VM"},
+				{Text: "reset", Description: "Reset VM"},
 			}
 			return prompt.FilterHasPrefix(subcommands, second, true)
 		}
@@ -42,16 +44,26 @@ func commandsCompleter(args []string) []prompt.Suggest {
 		if len(args) == 2 {
 			subcommands := []prompt.Suggest{
 				{Text: "list", Description: "List all datacenters"},
-				{Text: "info", Description: "Show info about a datacenter"},
 			}
 			return prompt.FilterHasPrefix(subcommands, second, true)
 		}
-	case "cl":
+	case "cr":
 		second := args[1]
 		if len(args) == 2 {
 			subcommands := []prompt.Suggest{
 				{Text: "list", Description: "List all clusters"},
 				{Text: "info", Description: "Show info about a cluster"},
+			}
+			return prompt.FilterHasPrefix(subcommands, second, true)
+		}
+	case "hx":
+		second := args[1]
+		if len(args) == 2 {
+			subcommands := []prompt.Suggest{
+				{Text: "destroy", Description: "Destroy a given HX cluster"},
+				{Text: "list", Description: "List all HX clusters"},
+				{Text: "info", Description: "Show info about given HX cluster"},
+				{Text: "summary", Description: "Show info about given HX cluster"},
 			}
 			return prompt.FilterHasPrefix(subcommands, second, true)
 		}
