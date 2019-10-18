@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"github.com/tatsushid/go-prettytable"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
@@ -66,8 +67,8 @@ func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 		{Header: "Path"},
 		{Header: "Hosts"},
 		{Header: "TotalCPU"},
-		{Header: "TotalMemory"},
 		{Header: "Cores"},
+		{Header: "TotalMemory"},
 	}...)
 
 	for index, cl := range clusters {
@@ -75,7 +76,7 @@ func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 		// hostSystems, _ := getHostSystems(cli, hostObjects)
 		cr, _ := GetComputeResource(cli, &cl.ComputeResource)
 		summary := cr.Summary.GetComputeResourceSummary()
-		tbl.AddRow(index+1, cl.Name(), cl.InventoryPath, summary.NumHosts, summary.TotalCpu, summary.TotalMemory, summary.NumCpuCores)
+		tbl.AddRow(index+1, cl.Name(), cl.InventoryPath, summary.NumHosts, getCpuInGHz(summary.TotalCpu), summary.NumCpuCores, getMemoryInGB(summary.TotalMemory))
 	}
 
 	return tbl, nil
@@ -196,25 +197,12 @@ func getHostSystems(cli *Vcli, objects []*object.HostSystem) ([]mo.HostSystem, e
 	return hosts, nil
 }
 
-func getNetworkProps(cli *Vcli, refs []types.ManagedObjectReference, props []string) ([]mo.Network, error) {
-	ctx := cli.ctx
-	c := cli.client.Client
-
-	var network []mo.Network
-	pc := property.DefaultCollector(c)
-	err := pc.Retrieve(ctx, refs, props, &network)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return network, nil
+func getMemoryInGB(memsize int64) string {
+	m := float64(memsize) / (1024 * 1024 * 1024)
+	return fmt.Sprintf("%.2fGB", m)
 }
 
-func GetMorProps(cli *Vcli, refs []types.ManagedObjectReference, props []string, dst interface{}) error {
-	pc := property.DefaultCollector(cli.client.Client)
-	if err := pc.Retrieve(cli.ctx, refs, props, dst); err != nil {
-		return err
-	}
-	return nil
+func getCpuInGHz(cpu int32) string {
+	c := float64(cpu) / 1000
+	return fmt.Sprintf("%.2fGHz", c)
 }

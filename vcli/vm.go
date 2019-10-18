@@ -204,7 +204,7 @@ func (cmd *VmInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 
 	tbl.NoHeader = true
 	for _, k := range infoTbl {
-		tbl.AddRow(Key(k.key), k.value)
+		tbl.AddRow(k.key, k.value)
 	}
 
 	return tbl, nil

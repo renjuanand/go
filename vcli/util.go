@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/fatih/color"
+	_ "github.com/mattn/go-colorable"
 )
 
 type KeyValue struct {

@@ -33,7 +33,7 @@ func (c *AboutCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, err
 
 	tbl.NoHeader = true
 	for _, k := range aboutTbl {
-		tbl.AddRow(Key(k.key), k.value)
+		tbl.AddRow(k.key, k.value)
 	}
 	return tbl, nil
 }

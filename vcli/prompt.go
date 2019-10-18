@@ -11,6 +11,7 @@ func showPrompt() {
 		prompt.OptionPrefix("==> "),
 		prompt.OptionTitle("vCLI"),
 		// prompt.OptionPrefixTextColor(prompt.Turquoise),
+		// prompt.OptionPrefixTextColor(prompt.Fuchsia),
 		prompt.OptionPrefixTextColor(prompt.Yellow),
 		prompt.OptionPreviewSuggestionTextColor(prompt.Blue),
 		prompt.OptionSelectedSuggestionBGColor(prompt.LightGray),

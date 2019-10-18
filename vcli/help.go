@@ -41,9 +41,9 @@ func (c *HelpCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, erro
 	}
 
 	tbl.NoHeader = true
-	tbl.AddRow(Key("Command"), Key("  Description"), Key("    Examples"))
+	tbl.AddRow("Command", "Description", "Examples")
 	for _, ch := range HelpTopic {
-		tbl.AddRow(HC(ch.cmd), HD(ch.description), HE(ch.example))
+		tbl.AddRow(ch.cmd, ch.description, ch.example)
 	}
 	return tbl, nil
 }
