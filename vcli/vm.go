@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/tatsushid/go-prettytable"
 	"github.com/vmware/govmomi/object"
+	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
 	"regexp"
@@ -67,25 +68,27 @@ func (c *VmCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 		}
 		return nil, nil
 	}
-	Message(c.Usage())
+	Usage(c.Usage())
 	return nil, nil
 }
 
 func (c *VmCommand) Usage() string {
-	return `Usage: vm {command}
+	return `Usage: vm [command]
 
 Commands:
-	destroy
-	info
-	list
-	poweroff
-	poweron
-	reset`
+  destroy      Destroy VM(s)
+  info         Display summary info of VM(s)
+  list         List all VMs
+  poweroff     Power off VM(s)
+  poweron      Power on VM(s)
+  reset        Reset VM(s)
+`
 }
 
 func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	ctx := cli.ctx
 	c := cli.client.Client
+	pc := property.DefaultCollector(c)
 	m := view.NewManager(c)
 	v, err := m.CreateContainerView(ctx, c.ServiceContent.RootFolder, []string{"VirtualMachine"}, true)
 	if err != nil {
@@ -97,7 +100,7 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 
 	if len(args) > 0 {
 		option = args[0]
-		if option == "--grep" && len(args) == 2 {
+		if option == "-grep" && len(args) == 2 {
 			filter = args[1]
 			enableFilter = true
 		}
@@ -105,7 +108,7 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 
 	// Retrieve summary property for all machines
 	var vms []mo.VirtualMachine
-	props := []string{"summary"}
+	props := []string{"summary", "datastore", "network", "parent"}
 	props = append(props, "guest.ipAddress")
 	err = v.Retrieve(ctx, []string{"VirtualMachine"}, props, &vms)
 	if err != nil {
@@ -113,10 +116,11 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
-		{Header: "No"},
+		{Header: "#"},
 		{Header: "Name"},
 		{Header: "IP Address"},
 		{Header: "State"},
+		{Header: "Folder"},
 	}...)
 
 	// tbl.Separator = " | "
@@ -126,27 +130,37 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 			ip = vm.Guest.IpAddress
 		}
 
+		var folder mo.Folder
+		_ = pc.RetrieveOne(ctx, *vm.Entity().Parent, []string{"name"}, &folder)
+
 		if enableFilter {
 			r, _ := regexp.Compile(filter)
 			//if strings.Contains(vm.Summary.Config.Name, filter) {
-			if r.MatchString(vm.Summary.Config.Name) {
-				tbl.AddRow(index+1, vm.Summary.Config.Name, ip, string(vm.Summary.Runtime.PowerState))
+			// apply search filter on vm name or ip address or parent(folder)
+			if r.MatchString(vm.Summary.Config.Name) || r.MatchString(ip) || r.MatchString(folder.Name) {
+				tbl.AddRow(index+1, vm.Summary.Config.Name, ip, string(vm.Summary.Runtime.PowerState), folder.Name)
 			}
 		} else {
-			tbl.AddRow(index+1, vm.Summary.Config.Name, ip, string(vm.Summary.Runtime.PowerState))
+			tbl.AddRow(index+1, vm.Summary.Config.Name, ip, string(vm.Summary.Runtime.PowerState), folder.Name)
 		}
 	}
 
 	return tbl, nil
 }
 
-func (c *VmInfoCommand) Usage() string {
-	return `Usage: vm info {vm name}`
+func (cmd *VmInfoCommand) Usage() string {
+	return `Usage: vm info vm-name OR #
+
+Examples:
+  vm info Ubuntu-01
+  vm info 1
+`
 }
 
 func (cmd *VmInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(args) <= 0 {
-		return nil, errors.New(cmd.Usage())
+		Usage(cmd.Usage())
+		return nil, nil
 	}
 
 	vmName := args[0]
@@ -211,52 +225,80 @@ func (cmd *VmInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 }
 
 func (c *VmPowerOnCommand) Usage() string {
-	return `Usage: vm poweron vm-name1, vm-name2, ... OR
-       vm poweron 1,2,...`
+	return `Usage: vm poweron vm-name1 [,vm-name2, ...]
+
+PowerOn VM(s)
+
+Examples:
+  vm poweron vm1
+  vm poweron WinVm1,Ubuntu01
+`
 }
 
 func (c *VmPowerOnCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return nil, errors.New(c.Usage())
+		Usage(c.Usage())
+		return nil, nil
 	}
 	err := executeVmCommand(VM_POWERON, cli, args...)
 	return nil, err
 }
 
 func (c *VmPowerOffCommand) Usage() string {
-	return `Usage: vm poweroff vm-name1, vm-name2, ... OR
-       vm poweroff 1,2,...`
+	return `Usage: vm poweroff vm-name1 [,vm-name2, ...]
+
+PowerOff VM(s)
+
+Examples:
+  vm poweroff vm1
+  vm poweroff WinVm1,Ubuntu01
+`
 }
 
 func (c *VmPowerOffCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return nil, errors.New(c.Usage())
+		Usage(c.Usage())
+		return nil, nil
 	}
 	err := executeVmCommand(VM_POWEROFF, cli, args...)
 	return nil, err
 }
 
 func (c *VmDestroyCommand) Usage() string {
-	return `Usage: vm destroy vm-name1, vm-name2, ... OR
-       vm destroy 1,2,...`
+	return `Usage: vm destroy vm-name1 [,vm-name2, ...]
+
+Destroy VM(s)
+
+Examples:
+  vm destroy vm1
+  vm destroy WinVm1,Ubuntu01
+`
 }
 
 func (c *VmDestroyCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return nil, errors.New(c.Usage())
+		Usage(c.Usage())
+		return nil, nil
 	}
 	err := executeVmCommand(VM_DESTROY, cli, args...)
 	return nil, err
 }
 
 func (c *VmResetCommand) Usage() string {
-	return `Usage: vm reset vm-name1, vm-name2, ... OR
-       vm reset 1,2,...`
+	return `Usage: vm reset vm-name1 [,vm-name2, ...]
+
+Reset VM(s)
+
+Examples:
+  vm reset vm1
+  vm reset WinVm1,Ubuntu01
+`
 }
 
 func (c *VmResetCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
 	if len(strings.Join(args, "")) == 0 {
-		return nil, errors.New(c.Usage())
+		Usage(c.Usage())
+		return nil, nil
 	}
 	err := executeVmCommand(VM_RESET, cli, args...)
 	return nil, err

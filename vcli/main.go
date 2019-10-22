@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -46,7 +45,7 @@ var (
 var IdleActionTimer *time.Timer
 var protocolMatch = regexp.MustCompile(`^\w+://`)
 
-// show vCLI usage
+// show vcli usage
 func printUsage() {
 	prog := filepath.Base(os.Args[0])
 	fmt.Println("Usage: \t", prog, "-h <ESXi or vCenter host> -u <Username> -p <Password>")
@@ -119,6 +118,7 @@ func getArgs() (string, string, string, bool) {
 	url := vcliArgs.String("h", "", "ESXi or vCenter host")
 	username := vcliArgs.String("u", "", "Username")
 	password := vcliArgs.String("p", "", "Password")
+	version := vcliArgs.Bool("v", false, "Version")
 	// insecure := vcliArgs.Bool("k", true, "Insecure")
 	// Don't verify the server's certificate chain (default)
 	insecure := true
@@ -128,6 +128,18 @@ func getArgs() (string, string, string, bool) {
 	}
 
 	vcliArgs.Parse(os.Args[1:])
+
+	if *version {
+		fmt.Println(VCLI_VERSION)
+		os.Exit(0)
+	}
+
+	if strings.Trim(*username, " ") == "" {
+		var user string
+		fmt.Print("Enter username: ")
+		fmt.Scanf("%s", &user)
+		*username = user
+	}
 
 	if strings.Trim(*password, " ") == "" {
 		fmt.Print("Enter password: ")
@@ -142,6 +154,9 @@ func getArgs() (string, string, string, bool) {
 }
 
 func handleExit(cli *Vcli) {
+	if Spinner.Active() {
+		Spinner.Stop()
+	}
 	switch v := recover().(type) {
 	case nil:
 		cli.client.Logout(cli.ctx)
@@ -165,11 +180,13 @@ func main() {
 	cli, err := New(h, u, p, s)
 
 	if err != nil {
-		log.Fatal(err)
+		Errorln(err)
 	}
 	auth := &Credentials{username: u, password: p}
 	cli.auth = auth
 
+	// go-prompt haven't exposed the api to reset the terminal settings
+	// Till we figure out that, don't disconnect session on idle timeout
 	/*
 		IdleActionTimer = time.NewTimer(IDLE_ACTION_TIMEOUT)
 
@@ -182,6 +199,14 @@ func main() {
 	*/
 	defer handleExit(cli)
 	defer cli.client.Logout(cli.ctx)
+	defer func() {
+		if x := recover(); x != nil {
+			if Spinner.Active() {
+				Spinner.Stop()
+			}
+			Errorln(x)
+		}
+	}()
 
 	a := cli.client.Client.ServiceContent.About
 	Success("Connected to", a.Name, a.Version)

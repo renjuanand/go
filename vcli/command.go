@@ -8,7 +8,7 @@ type Command interface {
 	Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 }
 
-// commands available for vCLI prompt
+// commands available for vcli prompt
 var Commands = map[string]Command{
 	"about":   &AboutCommand{},
 	"cr":      &CrCommand{},

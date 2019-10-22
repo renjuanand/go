@@ -35,15 +35,15 @@ func (c *DcCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 		}
 		return nil, nil
 	}
-	Message(c.Usage())
+	Usage(c.Usage())
 	return nil, nil
 }
 
-func (c *DcCommand) Usage() string {
-	return `Usage: dc {command}
+func (cmd *DcCommand) Usage() string {
+	return `Usage: dc [command]
 
 Commands:
-	list`
+  list    List all datacenters`
 }
 
 func (cmd *DcListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
@@ -89,7 +89,7 @@ func (cmd *DcListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
-		{Header: "No."},
+		{Header: "#"},
 		{Header: "Name", MinWidth: 6},
 		{Header: "Path"},
 		{Header: "Hosts"},

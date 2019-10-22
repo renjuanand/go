@@ -1,7 +1,12 @@
 package main
 
 import (
+	"os"
 	"strings"
+)
+
+const (
+	INVALID_SESSION = "session is not authenticated"
 )
 
 func executor(command string) {
@@ -20,7 +25,12 @@ func executor(command string) {
 			Spinner.Stop()
 
 			if err != nil {
+				if strings.Contains(err.Error(), INVALID_SESSION) {
+					Errorln(err.Error() + " Exiting...")
+					os.Exit(1)
+				}
 				Errorln(err.Error())
+				return
 			}
 			// Print command response
 			if t != nil {

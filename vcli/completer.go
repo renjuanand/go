@@ -10,12 +10,12 @@ var commands = []prompt.Suggest{
 	{Text: "about", Description: "Display About info for HOST"},
 	{Text: "cr", Description: "Cluster commands"},
 	{Text: "dc", Description: "Datacenter commands"},
-	{Text: "exit", Description: "Exit vCLI"},
-	{Text: "help", Description: "Show list of vCLI commands"},
+	{Text: "exit", Description: "Exit vcli"},
+	{Text: "help", Description: "Show list of vcli commands"},
 	{Text: "hx", Description: "HX commands"},
 	{Text: "version", Description: "Show ESXi or vCenter version"},
 	{Text: "vm", Description: "VM commands"},
-	{Text: "quit", Description: "Exit vCLI"},
+	{Text: "quit", Description: "Exit vcli"},
 }
 
 func commandsCompleter(args []string) []prompt.Suggest {
@@ -74,88 +74,18 @@ func commandsCompleter(args []string) []prompt.Suggest {
 	return []prompt.Suggest{}
 }
 
-func excludeOptions(args []string) ([]string, bool) {
-	l := len(args)
-	filtered := make([]string, 0, l)
-
-	shouldSkipNext := []string{
-		"-s",
-		"--host",
-		"--user",
-		"-u",
-		"--password",
-		"-p",
-	}
-
-	var skipNextArg bool
-	for i := 0; i < len(args); i++ {
-		if skipNextArg {
-			skipNextArg = false
-			continue
-		}
-
-		for _, s := range shouldSkipNext {
-			if strings.HasPrefix(args[i], s) {
-				if strings.Contains(args[i], "=") {
-					// we can specify option value like '-o=json'
-					skipNextArg = false
-				} else {
-					skipNextArg = true
-				}
-				continue
-			}
-		}
-		if strings.HasPrefix(args[i], "-") {
-			continue
-		}
-
-		filtered = append(filtered, args[i])
-	}
-	return filtered, skipNextArg
-}
-
-func getPreviousOption(d prompt.Document) (cmd, option string, found bool) {
-	args := strings.Split(d.TextBeforeCursor(), " ")
-	l := len(args)
-	if l >= 2 {
-		option = args[l-2]
-	}
-	if strings.HasPrefix(option, "-") {
-		return args[0], option, true
-	}
-	return "", "", false
-}
-
-func completeOptionArguments(d prompt.Document) ([]prompt.Suggest, bool) {
-	//cmd, option, found := getPreviousOption(d)
-	//_, _, found := getPreviousOption(d)
-	//if !found {
-	//	return []prompt.Suggest{}, false
-	//}
-	return []prompt.Suggest{}, false
-}
-
 func completer(d prompt.Document) []prompt.Suggest {
 	if d.TextBeforeCursor() == "" {
 		return []prompt.Suggest{}
+		// return commands
 	}
 	args := strings.Split(d.TextBeforeCursor(), " ")
 	w := d.GetWordBeforeCursor()
 
-	// If word before the cursor starts with "-", returns CLI flag options.
+	// If word before the cursor starts with "-", return options for subcommand
 	if strings.HasPrefix(w, "-") {
 		return optionCompleter(args, strings.HasPrefix(w, "--"))
 	}
 
-	// Return suggestions for option
-	if suggests, found := completeOptionArguments(d); found {
-		return suggests
-	}
-
-	commandArgs, skipNext := excludeOptions(args)
-	if skipNext {
-		return []prompt.Suggest{}
-	}
-
-	return commandsCompleter(commandArgs)
+	return commandsCompleter(args)
 }

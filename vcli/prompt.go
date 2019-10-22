@@ -9,7 +9,7 @@ func showPrompt() {
 		executor,
 		completer,
 		prompt.OptionPrefix("==> "),
-		prompt.OptionTitle("vCLI"),
+		prompt.OptionTitle("vcli"),
 		// prompt.OptionPrefixTextColor(prompt.Turquoise),
 		// prompt.OptionPrefixTextColor(prompt.Fuchsia),
 		prompt.OptionPrefixTextColor(prompt.Yellow),

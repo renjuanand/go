@@ -39,16 +39,16 @@ func (c *CrCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error)
 		}
 		return nil, nil
 	}
-	Message(c.Usage())
+	Usage(c.Usage())
 	return nil, nil
 }
 
 func (c *CrCommand) Usage() string {
-	return `Usage: cl {command}
+	return `Usage: cr [command]
 
 Commands:
-	list
-	info`
+  list    List all clusters
+  info    Display cluster summary`
 }
 
 func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
@@ -58,11 +58,11 @@ func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	}
 
 	if len(clusters) <= 0 {
-		return nil, errors.New("No cluster found")
+		return nil, errors.New("No clusters found")
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
-		{Header: "No."},
+		{Header: "#"},
 		{Header: "Name", MinWidth: 6},
 		{Header: "Path"},
 		{Header: "Hosts"},
@@ -83,7 +83,7 @@ func (cmd *CrListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 }
 
 func (c *CrInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
-	Error("Not implemented")
+	Errorln("Not implemented")
 	return nil, nil
 }
 

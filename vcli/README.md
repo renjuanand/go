@@ -1,4 +1,4 @@
-# vCLI
+# vcli
   
-vCLI is an interactive vSphere CLI built on top of govmomi.
+vcli is an interactive vSphere CLI built on top of govmomi.
 
