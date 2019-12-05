@@ -14,7 +14,7 @@ func (c *ExitCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, erro
 	}
 	err := v.client.Logout(v.ctx)
 	if err != nil {
-		return nil, err
+		Errorln(err)
 	}
 	Message("Good Bye!")
 	os.Exit(0)

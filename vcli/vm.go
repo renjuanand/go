@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/tatsushid/go-prettytable"
 	"github.com/vmware/govmomi/object"
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/mo"
-	"regexp"
+	_ "regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -95,15 +96,13 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 		return nil, err
 	}
 
-	var option, filter string
-	enableFilter := false
+	var filter string
+	listCmd := flag.NewFlagSet("list", flag.ContinueOnError)
+	listGrep := listCmd.String("grep", "", "Search pattern")
+	listCmd.Parse(args)
 
-	if len(args) > 0 {
-		option = args[0]
-		if option == "-grep" && len(args) == 2 {
-			filter = args[1]
-			enableFilter = true
-		}
+	if listGrep != nil {
+		filter = *listGrep
 	}
 
 	// Retrieve summary property for all machines
@@ -113,6 +112,10 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	err = v.Retrieve(ctx, []string{"VirtualMachine"}, props, &vms)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(vms) == 0 {
+		return nil, nil
 	}
 
 	tbl, err := prettytable.NewTable([]prettytable.Column{
@@ -133,11 +136,11 @@ func (cmd *VmListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 		var folder mo.Folder
 		_ = pc.RetrieveOne(ctx, *vm.Entity().Parent, []string{"name"}, &folder)
 
-		if enableFilter {
-			r, _ := regexp.Compile(filter)
-			//if strings.Contains(vm.Summary.Config.Name, filter) {
+		if listGrep != nil {
 			// apply search filter on vm name or ip address or parent(folder)
-			if r.MatchString(vm.Summary.Config.Name) || r.MatchString(ip) || r.MatchString(folder.Name) {
+			//r, _ := regexp.Compile(filter)
+			//if r.MatchString(vm.Summary.Config.Name) || r.MatchString(ip) || r.MatchString(folder.Name) {
+			if strings.Contains(vm.Summary.Config.Name, filter) || strings.Contains(folder.Name, filter) || (ip != "" && strings.Contains(ip, filter)) {
 				tbl.AddRow(index+1, vm.Summary.Config.Name, ip, string(vm.Summary.Runtime.PowerState), folder.Name)
 			}
 		} else {

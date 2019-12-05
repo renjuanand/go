@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/tatsushid/go-prettytable"
 	_ "text/tabwriter"
 )
@@ -10,7 +9,6 @@ type AboutCommand struct{}
 
 // 'about' command handler
 func (c *AboutCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, error) {
-	fmt.Println(v.client.Client.ServiceContent)
 	a := v.client.Client.ServiceContent.About
 	tbl, err := prettytable.NewTable([]prettytable.Column{
 		{Header: "Key"},

@@ -134,6 +134,10 @@ func getArgs() (string, string, string, bool) {
 		os.Exit(0)
 	}
 
+	if strings.Trim(*url, " ") == "" {
+		printUsage()
+	}
+
 	if strings.Trim(*username, " ") == "" {
 		var user string
 		fmt.Print("Enter username: ")
