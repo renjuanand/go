@@ -185,6 +185,7 @@ func main() {
 
 	if err != nil {
 		Errorln(err)
+		os.Exit(1)
 	}
 	auth := &Credentials{username: u, password: p}
 	cli.auth = auth

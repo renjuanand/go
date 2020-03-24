@@ -33,7 +33,9 @@ const (
 	HX_SUMMARY = "summary"
 	HX_DESTROY = "destroy"
 
-	CLIENT_TIMEOUT = 20
+	CLIENT_TIMEOUT         = 20
+	SC_MGMT_NETWORK        = "Storage Controller Management Network"
+	ERR_NO_SC_MGMT_NETWORK = "No Storage Controller Management Network found"
 )
 
 var hxCommands = map[string]Command{
@@ -325,7 +327,7 @@ func (cmd *HxInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 			hs, err := getClusterInfo(cli, c)
 			if err == nil && hs != nil {
 				hsl = append(hsl, hs)
-			} else {
+			} else if err.Error() != ERR_NO_SC_MGMT_NETWORK {
 				Errorln("["+c.Name()+"]:", err)
 			}
 		}(clr)
@@ -382,72 +384,67 @@ func (cmd *HxInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	return tbl, nil
 }
 
-func getClusterInfo(cli *Vcli, hxCluster *object.ClusterComputeResource) (*ClusterSummary, error) {
+func getControllerIp(cli *Vcli, hxCluster *object.ClusterComputeResource) (string, error) {
 	ctx := cli.ctx
 	c := cli.client.Client
 	pc := property.DefaultCollector(c)
-	hostObjects, err := hxCluster.ComputeResource.Hosts(ctx)
+
+	var mocr mo.ComputeResource
+	crRef := hxCluster.ComputeResource.Reference()
+	err := pc.RetrieveOne(ctx, crRef, []string{"network"}, &mocr)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	refs := make([]types.ManagedObjectReference, 0, len(hostObjects))
-	for _, o := range hostObjects {
-		refs = append(refs, o.Reference())
-	}
-
-	var hostSystems []mo.HostSystem
-	err = pc.Retrieve(ctx, refs, []string{"summary", "network"}, &hostSystems)
+	var networks []mo.Network
+	err = pc.Retrieve(ctx, mocr.Network, []string{"name", "vm"}, &networks)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var mgmtIp string
-
-	for _, host := range hostSystems {
-		var networks []mo.Network
-		err := pc.Retrieve(ctx, host.Network, []string{"vm"}, &networks)
-		if err != nil {
+	for _, network := range networks {
+		if network.Name != SC_MGMT_NETWORK {
 			continue
 		}
-		for _, nw := range networks {
-			var vms []mo.VirtualMachine
-			err := pc.Retrieve(ctx, nw.Vm, []string{"name", "guest"}, &vms)
-			if err != nil {
-				continue
-			}
-			for _, vm := range vms {
-				if strings.HasPrefix(vm.Name, "stCtlVM") && vm.Guest != nil && vm.Guest.Net != nil {
-					for _, nic := range vm.Guest.Net {
-						if nic.Connected && nic.Network == "Storage Controller Management Network" {
-							if len(nic.IpAddress) > 1 {
-								mgmtIp = nic.IpAddress[0]
-								break
-							}
-						}
-					}
+		var vms []mo.VirtualMachine
+		err := pc.Retrieve(ctx, network.Vm, []string{"name", "guest", "resourcePool"}, &vms)
+		if err != nil {
+			return "", err
+		}
 
-					if len(mgmtIp) > 0 {
-						break
+		for _, vm := range vms {
+			if strings.HasPrefix(vm.Name, "stCtlVM") && vm.Guest != nil && vm.Guest.Net != nil {
+				var rp mo.ResourcePool
+				err := pc.RetrieveOne(ctx, *vm.ResourcePool, []string{"owner"}, &rp)
+				if err != nil {
+					return "", err
+				}
+
+				if crRef.Value != rp.Owner.Value {
+					continue
+				}
+				for _, nic := range vm.Guest.Net {
+					if nic.Connected && nic.Network == SC_MGMT_NETWORK {
+						if len(nic.IpAddress) > 1 {
+							ctrlIp := nic.IpAddress[0]
+							return ctrlIp, nil
+						}
 					}
 				}
 			}
-
-			if len(mgmtIp) > 0 {
-				break
-			}
-		} // networks
-
-		if len(mgmtIp) > 0 {
-			break
 		}
-	} // hostSystems
-
-	if len(mgmtIp) == 0 {
-		return nil, errors.New("Failed to find management ip")
 	}
 
-	hs, err := getHxSummary(cli.auth, mgmtIp)
+	return "", errors.New(ERR_NO_SC_MGMT_NETWORK)
+}
+
+func getClusterInfo(cli *Vcli, hxCluster *object.ClusterComputeResource) (*ClusterSummary, error) {
+	ctrlIp, err := getControllerIp(cli, hxCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	hs, err := getHxSummary(cli.auth, ctrlIp)
 	if err != nil {
 		return nil, err
 	}
@@ -584,20 +581,20 @@ func (cmd *HxDestroyCommand) Execute(cli *Vcli, args ...string) (*prettytable.Ta
 		}
 	}
 
-	err = removeDatacenter(cli, hxCluster)
+	// Don't remove datacenter, multiple clusters can come under
+	// a datacenter
+	//err = removeDatacenter(cli, hxCluster)
 
 	// Remove cluster
-	/*
-		task, err := hxCluster.Destroy(ctx)
+	task, err := hxCluster.Destroy(ctx)
+	if err != nil {
+		Errorln("Failed to destroy cluster '" + hxCluster.Name() + "' : " + err.Error())
+	} else {
+		_, err := task.WaitForResult(ctx, nil)
 		if err != nil {
 			Errorln("Failed to destroy cluster '" + hxCluster.Name() + "' : " + err.Error())
-		} else {
-			_, err := task.WaitForResult(ctx, nil)
-			if err != nil {
-				Errorln("Failed to destroy cluster '" + hxCluster.Name() + "' : " + err.Error())
-			}
 		}
-	*/
+	}
 	return nil, err
 }
 
