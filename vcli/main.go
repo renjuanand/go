@@ -214,6 +214,6 @@ func main() {
 	}()
 
 	a := cli.client.Client.ServiceContent.About
-	Success("Connected to", a.Name, a.Version)
+	Success("Connected to %s running %s %s\n", h, a.Name, a.Version)
 	showPrompt()
 }

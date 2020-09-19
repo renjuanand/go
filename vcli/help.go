@@ -29,6 +29,8 @@ func (c *HelpCommand) Execute(v *Vcli, args ...string) (*prettytable.Table, erro
 	tbl.AddRow("about", "About info of ESXi or vCenter host", "about")
 	tbl.AddRow("cr list", "Shows list of clusters", "cr list")
 	tbl.AddRow("dc list", "Shows list of datacenters", "dc list")
+	tbl.AddRow("en list [-grep string]", "List all extensions", "en list")
+	tbl.AddRow("", "Use -grep option to filter extensions by key", "en list -grep vmware")
 	tbl.AddRow("hx list", "Shows list of HX clusters", "hx list")
 	tbl.AddRow("hx info [-grep string] NAME", "Display about info of HX clusters", "hx info all")
 	tbl.AddRow("", "NAME can be 'all' OR cluster names or numbers separated by comma", "hx info BLR-EDGE")
