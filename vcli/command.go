@@ -13,6 +13,7 @@ var Commands = map[string]Command{
 	"about":   &AboutCommand{},
 	"cr":      &CrCommand{},
 	"dc":      &DcCommand{},
+	"en":      &EnCommand{},
 	"exit":    &ExitCommand{},
 	"help":    &HelpCommand{},
 	"hx":      &HxCommand{},

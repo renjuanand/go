@@ -6,7 +6,7 @@ import (
 
 func optionCompleter(args []string, long bool) []prompt.Suggest {
 	l := len(args)
-	if l > 2 && ((args[0] == "vm" && args[1] == "list") || (args[0] == "hx" && args[1] == "info")) {
+	if l > 2 && ((args[0] == "vm" && args[1] == "list") || (args[0] == "hx" && args[1] == "info") || (args[0] == "en" && args[1] == "list")) {
 		return optionHelp
 	}
 

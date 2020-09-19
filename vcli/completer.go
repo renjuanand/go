@@ -10,6 +10,7 @@ var commands = []prompt.Suggest{
 	{Text: "about", Description: "Display About info for HOST"},
 	{Text: "cr", Description: "Cluster commands"},
 	{Text: "dc", Description: "Datacenter commands"},
+	{Text: "en", Description: "Extension commands"},
 	{Text: "exit", Description: "Exit vcli"},
 	{Text: "help", Description: "Show list of vcli commands"},
 	{Text: "hx", Description: "HX commands"},
@@ -44,6 +45,17 @@ func commandsCompleter(args []string) []prompt.Suggest {
 		if len(args) == 2 {
 			subcommands := []prompt.Suggest{
 				{Text: "list", Description: "List all datacenters"},
+			}
+			return prompt.FilterHasPrefix(subcommands, second, true)
+		}
+	case "en":
+		second := args[1]
+		if len(args) == 2 {
+			subcommands := []prompt.Suggest{
+				{Text: "list", Description: "List all extensions"},
+				{Text: "info", Description: "Show details of an extension"},
+				{Text: "register", Description: "Register an extension"},
+				{Text: "unregister", Description: "Unregister extension(s)"},
 			}
 			return prompt.FilterHasPrefix(subcommands, second, true)
 		}
