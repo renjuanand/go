@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/tatsushid/go-prettytable"
@@ -52,7 +54,7 @@ func (c *EnCommand) Usage() string {
 
 Commands:
   list         List all extensions
-	info				 Show details of an extension
+  info         Show details of an extension
   register     Register extension
   unregister   Unregister extension
 `
@@ -118,8 +120,47 @@ func (cmd *EnListCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table
 	return tbl, nil
 }
 
+func (c *EnInfoCommand) Usage() string {
+	return `Usage: en info <extension-key>
+
+Examples:
+  en info com.vmware.ovf
+`
+}
+
 func (cmd *EnInfoCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
-	return nil, nil
+	if len(args) <= 0 {
+		Usage(cmd.Usage())
+		return nil, nil
+	}
+
+	key := args[0]
+	ctx := cli.ctx
+	c := cli.client.Client
+
+	m, err := object.GetExtensionManager(c)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := m.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, e := range list {
+		if e.Key == key {
+			data, err := json.MarshalIndent(&e, "", "  ")
+			if err != nil {
+				return nil, err
+			}
+			Spinner.Stop()
+			fmt.Printf("%s\n", data)
+			return nil, nil
+		}
+	}
+
+	return nil, errors.New("Extension '" + key + "' is not found")
 }
 
 func (cmd *EnRegisterCommand) Execute(cli *Vcli, args ...string) (*prettytable.Table, error) {
@@ -127,7 +168,7 @@ func (cmd *EnRegisterCommand) Execute(cli *Vcli, args ...string) (*prettytable.T
 }
 
 func (cmd *EnUnregisterCommand) Usage() string {
-	return `Usage: en unregister extension-name
+	return `Usage: en unregister <extension-key>
 
 Examples:
   en unregister com.vmware.ovf
